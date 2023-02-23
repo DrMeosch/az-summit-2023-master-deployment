@@ -1,0 +1,82 @@
+parameters:
+
+##############################################################
+# Default environments for all project
+##############################################################
+- name: environments
+  type: object
+  default:
+  # if you get an error:
+  # __built-in-schema.yml: Maximum object size exceeded.
+  # Then reduce the number of envs or the number of applications.
+
+  - Acceptance
+  - DevExternal
+  - Maintenance2
+  - Integration
+  - Education
+  - Production
+
+##############################################################
+# Projects to deploy
+##############################################################
+- name: projects
+  type: object
+  default:
+
+
+#############################################################################
+#############################################################################
+#############################################################################
+# !!!!!
+# DO NOT EDIT under this line
+# !!!!!
+# This section is here because AZDO is limited in terms of complex variables
+# and we have only one option to pass complex objects (via parameters directly in the template)
+#############################################################################
+#############################################################################
+#############################################################################
+
+
+stages:
+
+- stage: Preflight
+  jobs:
+
+  - ${{ if contains(variables['Build.DefinitionName'], 'master-deployment-application') }}:
+
+    # loop via projects
+    - ${{ each project in parameters.projects }}:
+
+      # if enable == should be deployed
+      - ${{ if eq(project.deploy, true) }}:
+
+        # if it's an application
+        - ${{ if or(and(not(contains(project.name, 'api')), not(contains(project.name, 'bff'))), eq(project.name, 'ahahaha-api')) }}:
+
+          - template: ../templates/build/build-template.yml
+            parameters:
+              project: ${{ project }}
+
+
+  - ${{ else }}:
+
+    # loop via projects
+    - ${{ each project in parameters.projects }}:
+
+      # if enable == should be deployed
+      - ${{ if eq(project.deploy, true) }}:
+
+        # if api or bff
+        - ${{ if and(or(contains(project.name, 'bff'), contains(project.name, 'api')), ne(project.name, 'ahahaha-api')) }}:
+
+          - template: ../templates/build/build-template.yml
+            parameters:
+              project: ${{ project }}
+
+
+# Deployment stages
+- template: ../templates/deploy/deploy-template.yml
+  parameters:
+    projects: ${{ parameters.projects }}
+    environments: ${{ parameters.environments }}
