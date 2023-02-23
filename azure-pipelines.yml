@@ -1,0 +1,23 @@
+parameters:
+- name: release
+  displayName: Release
+  type: string
+  default: Release-2023.03
+  values:
+  - Release-2023.03
+trigger: none
+appendCommitMessageToRunName: false
+resources:
+  repositories:
+  - repository: templates
+    name: templates
+    ref: refs/heads/master
+  - repository: configurations
+    name: configurations
+    ref: refs/heads/master
+  - repository: scripts
+    name: scripts
+    ref: refs/heads/master
+name: ${{ parameters.release }} ($(Date:yyyyMMdd)$(Rev:.r))
+stages:
+- template: Releases/${{ parameters.release }}.yml
