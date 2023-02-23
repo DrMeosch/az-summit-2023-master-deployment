@@ -1,0 +1,111 @@
+parameters:
+- name: projects
+  type: object
+
+- name: environments
+  type: object
+
+
+stages:
+
+- ${{ if contains(variables['Build.DefinitionName'], 'master-deployment-application') }}:
+
+  # loop via environments
+  - ${{ each Environment in parameters.environments }}:
+
+    - stage: ${{ Environment }}
+      dependsOn:
+      - Preflight
+      - ${{ if in(Environment, 'Integration', 'EduProduction') }}:
+        - Maintenance2
+      - ${{ elseif eq(Environment, 'Production') }}:
+        - EduProduction
+        - Integration
+
+      ${{ if eq(variables['Build.Reason'], 'PullRequest') }}:
+        condition: false
+      ${{ elseif eq(Environment, 'Production') }}:
+        condition: |
+          or
+          (
+            eq(dependencies.Integration.result, 'Succeeded'),
+            eq(dependencies.EduProduction.result, 'Succeeded'),
+            succeeded()
+          )
+      ${{ else }}:
+        condition: succeeded()
+
+      jobs:
+
+      # loop via projects
+      - ${{ each project in parameters.projects }}:
+
+        # if enabled == should be deployed
+        - ${{ if eq(project.deploy, true) }}:
+
+          # if it's an application
+          - ${{ if or(and(not(contains(project.name, 'api')), not(contains(project.name, 'bff'))), eq(project.name, 'ahahahahah-api')) }}:
+
+            # if project should be deployed to this env
+            - ${{ if or(eq(project.environments, ''), containsValue(project.environments, Environment)) }}:
+
+                # fix intend
+                - template: pipelines/${{ project.name }}/main-template.yml@templates
+                  parameters:
+                    vEnvironment: ${{ Environment }}
+                    project: ${{ project }}
+
+- ${{ else }}:
+
+  # loop via environments
+  - ${{ each Environment in parameters.environments }}:
+
+    - stage: ${{ Environment }}
+      dependsOn:
+      - Preflight
+      - ${{ if in(Environment, 'Integration', 'EduProduction') }}:
+        - Maintenance2
+      - ${{ elseif eq(Environment, 'Production') }}:
+        - EduProduction
+        - Integration
+
+      ${{ if eq(variables['Build.Reason'], 'PullRequest') }}:
+        condition: false
+      ${{ elseif eq(Environment, 'Production') }}:
+        condition: |
+          or
+          (
+            eq(dependencies.Integration.result, 'Succeeded'),
+            eq(dependencies.EduProduction.result, 'Succeeded'),
+            succeeded()
+          )
+      ${{ else }}:
+        condition: succeeded()
+
+      jobs:
+
+      # loop via projects
+      - ${{ each project in parameters.projects }}:
+
+        # if enabled == should be deployed
+        - ${{ if eq(project.deploy, true) }}:
+
+          # if api or bff
+          - ${{ if and(or(contains(project.name, 'bff'), contains(project.name, 'api')), ne(project.name, 'dem-api')) }}:
+
+            # if project should be deployed to this env
+            - ${{ if or(eq(project.environments, ''), containsValue(project.environments, Environment)) }}:
+
+              - template: pipelines/api/main-template.yml@templates
+                parameters:
+                  vEnvironment: ${{ Environment }}
+                  project: ${{ project }}
+                  dependsOn:
+                  # Configuration API always goes first
+                  - ${{ if ne(project.name, 'configuration-api') }}:
+                    # https://docs.microsoft.com/en-us/azure/devops/pipelines/process/expressions?view=azure-devops#filtered-arrays
+                    - ${{ if containsValue(parameters.projects.*.name, 'configuration-api') }}:
+                      # ugly and resource consuming, but no other choice here
+                      - ${{ each proj in parameters.projects }}:
+                        - ${{ if eq(proj.name, 'configuration-api') }}:
+                          - configuration_api_${{ Environment }}_${{ replace(proj.version, '.', '_') }}_Deployment
