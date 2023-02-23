@@ -1,0 +1,102 @@
+parameters:
+
+- name: Release
+  displayName: Release Name
+  type: string
+
+- name: EpicId
+  displayName: Release Epic Id
+  type: string
+
+- name: isPr
+  displayName: Create PR
+  type: boolean
+  default: true
+
+
+trigger: none
+
+
+resources:
+  repositories:
+  - repository: dashboards
+    type: git
+    name: dashboards
+    ref: refs/heads/master
+  - repository: configurations
+    type: git
+    name: configurations
+    ref: refs/heads/master
+  - repository: scripts
+    type: git
+    name: scripts
+    ref: refs/heads/master
+
+
+jobs:
+
+- job: Prepare
+  pool:
+    vmImage: windows-latest
+  steps:
+
+  - checkout: self
+    path: s/master-deployment
+    persistCredentials: true
+
+  - checkout: scripts
+    path: s/scripts
+    fetchDepth: 1
+
+  - checkout: configurations
+    path: s/configurations
+    fetchDepth: 1
+
+  - powershell: |
+      Install-Module -Name powershell-yaml -Confirm:$False -Force
+    displayName: Install PS Modules
+
+  - powershell: |
+      git checkout main
+      git pull
+      git switch -c release/${{ parameters.Release }}
+    workingDirectory: $(Pipeline.Workspace)/s/master-deployment
+    displayName: Create New Branch
+
+  - powershell: |
+      $projects = ..\scripts\devops-scripts\Prepare-YamlProjectsByEpic.ps1 -ConfigurationPath $(Pipeline.Workspace)/s/configurations -EpicId ${{ parameters.EpicId }}
+      $yaml = (cat .\docs\.Rollout-Template.yml | ConvertFrom-Yaml -Ordered)
+      $default_projects = $yaml.parameters | Where-Object {$_.name -eq 'projects'}
+      $default_projects.default = $projects | ConvertFrom-Yaml -Ordered
+      ($yaml | ConvertTo-Yaml).Trim() | Out-File .\Releases\${{ parameters.release }}.yml
+    workingDirectory: $(Pipeline.Workspace)/s/master-deployment
+    env:
+      PAT: $(System.AccessToken)
+    displayName: Get//Set Project to deploy
+
+  - powershell: |
+      $yaml = (cat  .\azure-pipelines.yml | ConvertFrom-Yaml -Ordered)
+      $release = $yaml.parameters |?{$_.name -eq 'release'}
+      $release.default = '${{ parameters.release }}'
+      $release.values += '${{ parameters.release }}'
+      ($yaml | ConvertTo-Yaml).Trim() | Out-File .\azure-pipelines.yml
+    workingDirectory: $(Pipeline.Workspace)/s/master-deployment
+    displayName: Set Release ${{ parameters.release }} as Default
+
+  - powershell: |
+      git config --global user.name "$(Build.RequestedFor)"
+      git config --global user.email "$(Build.RequestedForEmail)"
+      git status
+      git add .
+      git commit -m "Update Projects for ${{ parameters.Release }}"
+      git push --set-upstream origin HEAD:release/${{ parameters.Release }}
+    workingDirectory: $(Pipeline.Workspace)/s/master-deployment
+    displayName: "Push changes"
+
+  - ${{ if eq(parameters.isPr, 'true') }}:
+    - powershell: |
+        $output = az repos pr create --repository master-deployment --source-branch release/${{ parameters.Release }} --target-branch main --organization $(System.CollectionUri) --project $(System.TeamProject) --output json | ConvertFrom-Json
+        Write-Output ("{0}/pullrequest/{1}" -f $output.repository.webUrl, $output.pullRequestId)
+      displayName: Create PR
+      env:
+        AZURE_DEVOPS_EXT_PAT: $(System.AccessToken)
