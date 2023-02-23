@@ -8,7 +8,7 @@ parameters:
 
 stages:
 
-- ${{ if contains(variables['Build.DefinitionName'], 'master-deployment-application') }}:
+- ${{ if contains(variables['Build.DefinitionName'], 'az-summit-2023-master-deployment-application') }}:
 
   # loop via environments
   - ${{ each Environment in parameters.environments }}:
@@ -16,10 +16,10 @@ stages:
     - stage: ${{ Environment }}
       dependsOn:
       - Preflight
-      - ${{ if in(Environment, 'Integration', 'EduProduction') }}:
+      - ${{ if in(Environment, 'Integration', 'Education') }}:
         - Maintenance2
       - ${{ elseif eq(Environment, 'Production') }}:
-        - EduProduction
+        - Education
         - Integration
 
       ${{ if eq(variables['Build.Reason'], 'PullRequest') }}:
@@ -29,7 +29,7 @@ stages:
           or
           (
             eq(dependencies.Integration.result, 'Succeeded'),
-            eq(dependencies.EduProduction.result, 'Succeeded'),
+            eq(dependencies.Education.result, 'Succeeded'),
             succeeded()
           )
       ${{ else }}:
@@ -63,10 +63,10 @@ stages:
     - stage: ${{ Environment }}
       dependsOn:
       - Preflight
-      - ${{ if in(Environment, 'Integration', 'EduProduction') }}:
+      - ${{ if in(Environment, 'Integration', 'Education') }}:
         - Maintenance2
       - ${{ elseif eq(Environment, 'Production') }}:
-        - EduProduction
+        - Education
         - Integration
 
       ${{ if eq(variables['Build.Reason'], 'PullRequest') }}:
@@ -76,7 +76,7 @@ stages:
           or
           (
             eq(dependencies.Integration.result, 'Succeeded'),
-            eq(dependencies.EduProduction.result, 'Succeeded'),
+            eq(dependencies.Education.result, 'Succeeded'),
             succeeded()
           )
       ${{ else }}:
@@ -91,7 +91,7 @@ stages:
         - ${{ if eq(project.deploy, true) }}:
 
           # if api or bff
-          - ${{ if and(or(contains(project.name, 'bff'), contains(project.name, 'api')), ne(project.name, 'dem-api')) }}:
+          - ${{ if and(or(contains(project.name, 'bff'), contains(project.name, 'api')), ne(project.name, 'ahahaha-api')) }}:
 
             # if project should be deployed to this env
             - ${{ if or(eq(project.environments, ''), containsValue(project.environments, Environment)) }}:

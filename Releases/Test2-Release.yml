@@ -1,0 +1,58 @@
+﻿parameters:
+- name: environments
+  type: object
+  default:
+  - Acceptance
+  - Integration
+  - Education
+  - Production
+- name: projects
+  type: object
+  default:
+  - name: az-summit-2023-app1
+    buildId: 432
+    version: 
+    deploy: true
+    environments:
+    - Acceptance
+    - DevAdvance
+    - DevAdvance2
+    - DevAdvance3
+    - DevAdvance4
+    - Education
+    - Integration
+    - Production
+  - name: az-summit-2023-app2
+    buildId: 433
+    version: 
+    deploy: true
+    environments:
+    - Acceptance
+    - DevAdvance
+    - DevAdvance2
+    - DevAdvance3
+    - DevAdvance4
+    - Education
+    - Integration
+    - Production
+stages:
+- stage: Preflight
+  jobs:
+  - ${{ if contains(variables['Build.DefinitionName'], 'master-deployment-application') }}:
+    - ${{ each project in parameters.projects }}:
+      - ${{ if eq(project.deploy, true) }}:
+        - ${{ if or(and(not(contains(project.name, 'api')), not(contains(project.name, 'bff'))), eq(project.name, 'ahahaha-api')) }}:
+          - template: ../templates/build/build-template.yml
+            parameters:
+              project: ${{ project }}
+  - ${{ else }}:
+    - ${{ each project in parameters.projects }}:
+      - ${{ if eq(project.deploy, true) }}:
+        - ${{ if and(or(contains(project.name, 'bff'), contains(project.name, 'api')), ne(project.name, 'ahahaha-api')) }}:
+          - template: ../templates/build/build-template.yml
+            parameters:
+              project: ${{ project }}
+- template: ../templates/deploy/deploy-template.yml
+  parameters:
+    projects: ${{ parameters.projects }}
+    environments: ${{ parameters.environments }}
