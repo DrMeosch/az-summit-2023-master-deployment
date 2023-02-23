@@ -71,6 +71,7 @@ jobs:
       $yaml = (cat .\docs\.Rollout-Template.yml | ConvertFrom-Yaml -Ordered)
       $default_projects = $yaml.parameters | Where-Object {$_.name -eq 'projects'}
       $default_projects.default = $projects | ConvertFrom-Yaml -Ordered
+      New-Item -ItemType Directory -ErrorAction SilentlyContinue -Path .\Releases
       ($yaml | ConvertTo-Yaml).Trim() | Out-File .\Releases\${{ parameters.release }}.yml
     workingDirectory: $(Pipeline.Workspace)/s/master-deployment
     env:
