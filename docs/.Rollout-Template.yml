@@ -11,8 +11,6 @@ parameters:
   # Then reduce the number of envs or the number of applications.
 
   - Acceptance
-  - DevExternal
-  - Maintenance2
   - Integration
   - Education
   - Production

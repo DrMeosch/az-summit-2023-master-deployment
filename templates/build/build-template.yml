@@ -24,7 +24,7 @@ jobs:
     - task: DownloadPipelineArtifact@2
       inputs:
         source: specific
-        project: dscan
+        project: Azure Summit 2023
         runVersion: specific
         runId: ${{ parameters.project.buildId }}
         artifact: drop
