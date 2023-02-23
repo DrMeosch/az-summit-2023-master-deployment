@@ -8,10 +8,10 @@ parameters:
   displayName: Release Epic Id
   type: string
 
-- name: isPr
-  displayName: Create PR
-  type: boolean
-  default: true
+# - name: isPr
+#   displayName: Create PR
+#   type: boolean
+#   default: true
 
 
 trigger: none
@@ -88,19 +88,19 @@ jobs:
     displayName: Set Release ${{ parameters.release }} as Default
 
   - powershell: |
-      git config --global user.name "$(Build.RequestedFor)"
-      git config --global user.email "$(Build.RequestedForEmail)"
+      git config --global user.name RM
+      git config --global user.email rm@dev.azure.com
       git status
       git add .
-      git commit -m "Update Projects for ${{ parameters.Release }}"
+      git commit -m "Add release configuration ${{ parameters.Release }}"
       git push --set-upstream origin HEAD:release/${{ parameters.Release }}
     workingDirectory: $(Pipeline.Workspace)/s/master-deployment
     displayName: Push changes
 
-  - ${{ if eq(parameters.isPr, 'true') }}:
-    - powershell: |
-        $output = az repos pr create --repository master-deployment --source-branch release/${{ parameters.Release }} --target-branch main --organization $(System.CollectionUri) --project $(System.TeamProject) --output json | ConvertFrom-Json
-        Write-Output ("{0}/pullrequest/{1}" -f $output.repository.webUrl, $output.pullRequestId)
-      displayName: Create PR
-      env:
-        AZURE_DEVOPS_EXT_PAT: $(System.AccessToken)
+  # - ${{ if eq(parameters.isPr, 'true') }}:
+  #   - powershell: |
+  #       $output = az repos pr create --repository master-deployment --source-branch release/${{ parameters.Release }} --target-branch main --organization $(System.CollectionUri) --project $(System.TeamProject) --output json | ConvertFrom-Json
+  #       Write-Output ("{0}/pullrequest/{1}" -f $output.repository.webUrl, $output.pullRequestId)
+  #     displayName: Create PR
+  #     env:
+  #       AZURE_DEVOPS_EXT_PAT: $(System.AccessToken)
