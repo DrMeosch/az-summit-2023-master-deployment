@@ -19,17 +19,20 @@ trigger: none
 
 resources:
   repositories:
-  - repository: dashboards
-    type: git
-    name: dashboards
+  - repository: templates
+    type: github
+    endpoint: 'srvConnGitHub'
+    name: DrMeosch/az-summit-2023-templates
     ref: refs/heads/master
   - repository: configurations
-    type: git
-    name: configurations
+    type: github
+    endpoint: 'srvConnGitHub'
+    name: DrMeosch/az-summit-2023-configurations
     ref: refs/heads/master
   - repository: scripts
-    type: git
-    name: scripts
+    type: github
+    endpoint: 'srvConnGitHub'
+    name: DrMeosch/az-summit-2023-scripts
     ref: refs/heads/master
 
 
@@ -72,7 +75,7 @@ jobs:
     workingDirectory: $(Pipeline.Workspace)/s/master-deployment
     env:
       PAT: $(System.AccessToken)
-    displayName: Get//Set Project to deploy
+    displayName: Get // Set Project to deploy
 
   - powershell: |
       $yaml = (cat  .\azure-pipelines.yml | ConvertFrom-Yaml -Ordered)
@@ -91,7 +94,7 @@ jobs:
       git commit -m "Update Projects for ${{ parameters.Release }}"
       git push --set-upstream origin HEAD:release/${{ parameters.Release }}
     workingDirectory: $(Pipeline.Workspace)/s/master-deployment
-    displayName: "Push changes"
+    displayName: Push changes
 
   - ${{ if eq(parameters.isPr, 'true') }}:
     - powershell: |
