@@ -1,0 +1,69 @@
+parameters:
+- name: project
+  type: object
+
+jobs:
+
+- job: ${{ replace(parameters.project.name, '-', '_') }}_${{ replace(parameters.project.version, '.', '_') }}_Check
+  pool:
+    name: Build-Agents
+  displayName: ${{ parameters.project.name }} - Check
+  steps:
+  - checkout: scripts
+
+  # start artifact check
+  - ${{ if eq(parameters.project.buildId, '') }}:
+    - powershell: |
+        echo ${{ parameters.project.name }}
+        echo "No buildId defined"
+        exit -1
+      displayName: Artifacts.Download - ${{ parameters.project.name }}
+
+  # download artifacts (test)
+  - ${{ else }}:
+    - task: DownloadPipelineArtifact@2
+      inputs:
+        source: specific
+        project: dscan
+        runVersion: specific
+        runId: ${{ parameters.project.buildId }}
+        artifact: drop
+        patterns: '**'
+        path: $(Pipeline.Workspace)/${{ parameters.project.name }}
+      displayName: Artifacts.Download - ${{ parameters.project.name }}
+
+    - task: PowerShell@2
+      inputs:
+        targetType: filePath
+        filePath: $(System.DefaultWorkingDirectory)/release-scripts/master-check-version.ps1
+        arguments: >
+          -File $(Pipeline.Workspace)/${{ parameters.project.name }}/version*.txt
+          -Version ${{ parameters.project.version }}
+      displayName: Artifacts.Check - Version
+
+    - task: PowerShell@2
+      inputs:
+        targetType: filePath
+        filePath: $(System.DefaultWorkingDirectory)/release-scripts/master-get-pipeline.ps1
+        arguments: >
+          -Name ${{ parameters.project.name }}
+          -BuildId ${{ parameters.project.buildId }}
+      env:
+        SYSTEM_ACCESSTOKEN: $(System.AccessToken)
+      name: GetPipelineId
+      displayName: Artifacts.Check - Pipeline / Name
+
+
+- job: ${{ replace(parameters.project.name, '-', '_') }}_${{ replace(parameters.project.version, '.', '_') }}_Retain
+  displayName: ${{ parameters.project.name }} - Retain
+  dependsOn:
+  - ${{ replace(parameters.project.name, '-', '_') }}_${{ replace(parameters.project.version, '.', '_') }}_Check
+  pool: server
+  variables:
+  - name: PipelineId
+    value: $[ dependencies.${{ replace(parameters.project.name, '-', '_') }}_Check.outputs['GetPipelineId.pipeline_id'] ]
+  steps:
+  - template: /common/tasks-retention-lease-set.yml@templates
+    parameters:
+      BuildId: ${{ parameters.project.buildId }}
+      DefinitionId: $(PipelineId)
