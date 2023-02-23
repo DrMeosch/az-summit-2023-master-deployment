@@ -17,7 +17,7 @@ stages:
       dependsOn:
       - Preflight
       - ${{ if in(Environment, 'Integration', 'Education') }}:
-        - Maintenance2
+        - Acceptance
       - ${{ elseif eq(Environment, 'Production') }}:
         - Education
         - Integration
@@ -64,7 +64,7 @@ stages:
       dependsOn:
       - Preflight
       - ${{ if in(Environment, 'Integration', 'Education') }}:
-        - Maintenance2
+        - Acceptance
       - ${{ elseif eq(Environment, 'Production') }}:
         - Education
         - Integration
