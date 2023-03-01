@@ -61,7 +61,7 @@ jobs:
   pool: server
   variables:
   - name: PipelineId
-    value: $[ dependencies.${{ replace(parameters.project.name, '-', '_') }}_Check.outputs['GetPipelineId.pipeline_id'] ]
+    value: $[ dependencies.${{ replace(parameters.project.name, '-', '_') }}_${{ replace(parameters.project.version, '.', '_') }}_Check.outputs['GetPipelineId.pipeline_id'] ]
   steps:
   - template: /common/tasks-retention-lease-set.yml@templates
     parameters:
