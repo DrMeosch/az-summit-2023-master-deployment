@@ -17,6 +17,7 @@ parameters:
 trigger: none
 pr: none
 
+appendCommitMessageToRunName: false
 
 resources:
   repositories:
@@ -41,7 +42,7 @@ jobs:
 
 - job: Prepare
   pool:
-    vmImage: windows-latest
+    name: Build-Agents
   steps:
 
   - checkout: self
