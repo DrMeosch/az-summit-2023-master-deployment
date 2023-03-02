@@ -58,11 +58,7 @@ jobs:
     fetchDepth: 1
 
   - powershell: |
-      Install-Module -Name powershell-yaml -Confirm:$False -Force
-    displayName: Install PS Modules
-
-  - powershell: |
-      git checkout main
+      git checkout master
       git pull
       git switch -c release/${{ parameters.Release }}
     workingDirectory: $(Pipeline.Workspace)/s/master-deployment
