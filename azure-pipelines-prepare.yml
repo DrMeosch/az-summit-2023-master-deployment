@@ -58,8 +58,6 @@ jobs:
     fetchDepth: 1
 
   - powershell: |
-      git checkout master
-      git pull
       git switch -c release/${{ parameters.Release }}
     workingDirectory: $(Pipeline.Workspace)/s/master-deployment
     displayName: Create New Branch
